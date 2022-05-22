@@ -1,0 +1,153 @@
+-- Criando tabela auxiliar de produtos
+CREATE table aux_produtos(
+idProduto INT PRIMARY KEY AUTO_INCREMENT, 
+nomeProduto VARCHAR(60) NOT NULL,
+imagemProduto VARCHAR(255) DEFAULT NULL
+);
+
+
+-- Criando tabela para gerenciamento de controle
+CREATE table controle_produtos(
+idControle INT PRIMARY KEY AUTO_INCREMENT, 
+acaoControle INT(1) NOT NULL COMMENT '1 = ENTRADA / 2 = SAÍDA' ,
+produto INT,
+FOREIGN KEY (produto) REFERENCES aux_produtos(idProduto),
+quantidade INT NOT NULL,
+data DATE NOT NULL
+)
+
+
+-- Criando tabela do estoque
+CREATE table estoque_produtos(
+idEstoque INT PRIMARY KEY AUTO_INCREMENT, 
+produto INT,
+FOREIGN KEY (produto) REFERENCES aux_produtos(idProduto),
+quantidadeAtual INT NOT NULL
+);
+
+
+
+-- Criando tabela de LOGS 
+CREATE table logs_produtos (
+idLog INT PRIMARY KEY AUTO_INCREMENT, 
+acao VARCHAR(255) NOT NULL,
+dataHora DATETIME NOT NULL
+);
+
+
+-- Criando tabela de ALERTAS
+CREATE table logs_alertas (
+idAlerta INT PRIMARY KEY AUTO_INCREMENT, 
+acao VARCHAR(255) NOT NULL,
+dataHora DATETIME NOT NULL
+);
+
+
+
+
+-- ############################################################################################## --
+-- ############################################################################################## --
+-- ############################################################################################## --
+
+
+-- Criando gatilho para enviar ações a tabela "logs_produtos"
+DELIMITER $$
+CREATE TRIGGER AFTER_INSERT_LOGS_NEW_PRODUCTS
+    -- Depois que inserir um novo produto enviar a tabela "logs_produtos"
+	AFTER INSERT ON aux_produtos 
+    FOR EACH ROW BEGIN         
+    -- Realizar essa ação
+	INSERT INTO logs_produtos(acao, dataHora) values (CONCAT('Um novo produto foi adicionado: ', NEW.nomeProduto), NOW());   
+END $$
+
+
+
+
+
+-- Criando gatilho para cadastrar produtos a tabela estoque, sempre que houver o cadastro de um novo produto...
+DELIMITER $$
+CREATE TRIGGER AFTER_INSERT_ESTOQUE_NEW_PRODUCTS
+    -- Depois que inserir um novo produto enviar a tabela "estoque_produtos"
+	AFTER INSERT ON aux_produtos 
+    FOR EACH ROW BEGIN         
+    -- Realizar essa ação
+	INSERT INTO estoque_produtos(produto, quantidadeAtual) VALUES (NEW.idProduto, 0);   
+END $$
+
+
+
+
+
+
+-- Criando gatilho para quando for cadastrado a entrada ou saida de um produto, dar baixa automaticamente no tabela estoque...
+DELIMITER $$
+CREATE TRIGGER AFTER_INSERT_CONTROLE_PRODUTOS_ESTOQUE_LOGS
+    -- Depois que for inserido um registro na tabela "controle_produtos", dar baixa na tabela estoque
+	AFTER INSERT ON controle_produtos 
+    FOR EACH ROW BEGIN         
+    
+        -- Recuperando nome do produto da tabela auxiliar
+        SELECT nomeProduto INTO @nameProduct FROM aux_produtos WHERE idProduto = NEW.produto;
+    
+        -- Verificando se foi uma entrada ou saída (1 = ENTRADA / 2 SAÍDA)
+        -- Atualizando a quantidade desse produto na tabela "estoque_produtos" 
+        -- Enviando ações a tabela "logs_produtos"
+
+        IF (NEW.acaoControle = 1) THEN
+             UPDATE estoque_produtos SET quantidadeAtual = quantidadeAtual + NEW.quantidade WHERE produto = NEW.produto;
+             INSERT INTO logs_produtos(acao, dataHora) values (CONCAT('Entrada no produto: ', @nameProduct, ' - Quantidade: ' , NEW.quantidade), NOW());   
+        ELSE 
+             UPDATE estoque_produtos SET quantidadeAtual = quantidadeAtual - NEW.quantidade WHERE produto = NEW.produto;
+             INSERT INTO logs_produtos(acao, dataHora) values (CONCAT('Saída no produto: ', @nameProduct, ' - Quantidade: ' , NEW.quantidade), NOW()); 
+        END IF;
+    
+END $$
+
+
+
+
+
+-- Criando gatilho para verificação de quantidade atual dos produtos na tabela estoque
+DELIMITER $$
+CREATE TRIGGER AFTER_UPDATE_ESTOQUE_QTD_ALERTAS
+    -- Depois que existir um update na tabela estoque, verificar se algum produto não esgotou...
+	AFTER UPDATE ON estoque_produtos 
+    FOR EACH ROW BEGIN
+      
+     -- Recuperando nome do produto da tabela auxiliar
+     SELECT nomeProduto INTO @nameProduct FROM aux_produtos WHERE idProduto = NEW.produto;
+     
+     -- Verificando se a quantidade atual for menor que 1, se sim, o produto foi esgotado...
+     IF (NEW.quantidadeAtual < 1) THEN  
+        INSERT INTO logs_alertas(acao, dataHora) values (CONCAT('O produto: ', @nameProduct , 'foi esgotado!'), NOW());   
+     END IF;
+
+END $$
+
+
+
+
+-- Criando gatilho para quando cadastrarem um produto sem imagem, enviar um alerta
+DELIMITER $$
+CREATE TRIGGER AFTER_INSERT_VERIFIC_IMG
+    -- Depois de um insert de um novo produto
+	AFTER INSERT ON aux_produtos 
+    FOR EACH ROW BEGIN
+
+     -- Verificando se o produto foi adicionado sem imagem
+     IF (NEW.imagemProduto IS NULL) THEN  
+        INSERT INTO logs_alertas(acao, dataHora) values (CONCAT('Por favor, adicione uma imagem ao produto: ', NEW.nomeProduto), NOW());   
+     END IF;
+END $$
+
+
+-- ############################################################################################## --
+-- ############################################################################################## --
+-- ############################################################################################## --
+
+-- Criando VIEW para o estoque
+
+CREATE VIEW view_estoqueprodutos AS 
+SELECT B.idProduto, B.nomeProduto, A.quantidadeAtual, B.imagemProduto FROM estoque_produtos A
+JOIN aux_produtos B ON A.produto = B.idProduto ORDER BY B.nomeProduto
+
