@@ -1,7 +1,7 @@
 # Projeto de estoque 
-Desenvolvi esse sistema com a finalidade de gerenciar um estoque. 
-
-Foi referente há um projeto de minha faculdade, é um sistema, feito de uma maneira simples com PHP puro e MySQL, no entanto, bem funcional, dinâmico e simples!
+Desenvolvi esse sistema com a finalidade de gerenciar um estoque. 	
+Foi referente há um projeto de minha faculdade, é um sistema, feito de uma maneira simples utilizando jQuery, PHP e MySQL.
+No entanto, bem funcional, dinâmico e simples!
 
 # Tela inicial
 
@@ -18,10 +18,10 @@ Foi referente há um projeto de minha faculdade, é um sistema, feito de uma man
 
 ### Linguagens utilizadas 
 
-- PHP   
-- jQuery    (JavaScript)       
-- Bootstrap (Framework) 
-- MySQL     (Banco de dados)
+- PHP        (Puro)
+- jQuery     (JavaScript)       
+- Bootstrap4 (Framework) 
+- MySQL      (Banco de dados)
 
 
 Observações: estou deixando disponíveis apenas o Back-end e SQL desenvolvido.
