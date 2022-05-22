@@ -1,5 +1,6 @@
 # Projeto de estoque 
 Desenvolvi esse sistema com a finalidade de gerenciar um estoque. 
+
 Foi referente há um projeto de minha faculdade, é um sistema, feito de uma maneira simples com PHP puro e MySQL, no entanto, bem funcional, dinâmico e simples!
 
 # Tela inicial
