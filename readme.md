@@ -16,7 +16,7 @@ No entanto, bem funcional, dinâmico e simples!
 - Logs do sistema
 
 
-### Linguagens utilizadas 
+### Tecnologias utilizadas 
 
 - PHP        (Puro)
 - jQuery     (JavaScript)       
